@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>成绩查询</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <h1 id="page-title">成绩查询系统</h1>
+    <p id="page-subtitle">请输入姓名和学号查询成绩</p>
+    <div class="subtitle" id="page-semester"></div>
+  </div>
+
+  <div class="container">
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>正在加载成绩数据...</p>
+    </div>
+
+    <!-- Error: No data -->
+    <div id="error-panel" class="alert alert-error" style="display:none;"></div>
+
+    <!-- Query form -->
+    <div class="card" id="query-card">
+      <div class="card-title"><span class="icon">&#128270;</span> 身份验证</div>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+        请输入您的姓名和学号以查询成绩，两者必须匹配才能查询。
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>姓名</label>
+          <input type="text" id="input-name" placeholder="请输入您的姓名">
+        </div>
+        <div class="form-group">
+          <label>学号</label>
+          <input type="text" id="input-id" placeholder="请输入您的学号">
+        </div>
+      </div>
+      <div id="alert-query" class="alert"></div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="queryGrade()">
+        &#128269; 查询成绩
+      </button>
+    </div>
+
+    <!-- Result panel -->
+    <div class="result-panel" id="result-panel">
+      <!-- Student info header -->
+      <div class="card">
+        <div class="result-header">
+          <div class="student-name" id="r-name"></div>
+          <div class="student-info" id="r-info"></div>
+        </div>
+
+        <!-- Score overview cards -->
+        <div class="score-cards">
+          <div class="score-card" style="background:#f0f9ff;border-color:#bfdbfe;">
+            <div class="score-label">平时成绩</div>
+            <div class="score-value" id="r-usual" style="color:#2563eb;"></div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);">占比 <span id="r-usual-weight"></span>%</div>
+          </div>
+          <div class="score-card" style="background:#fef3c7;border-color:#fde68a;">
+            <div class="score-label">期末成绩</div>
+            <div class="score-value" id="r-final" style="color:#d97706;"></div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);">占比 <span id="r-final-weight"></span>%</div>
+          </div>
+          <div class="score-card" id="r-total-card">
+            <div class="score-label">总评成绩</div>
+            <div class="score-value" id="r-total"></div>
+            <div id="r-total-badge"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed scores -->
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128202;</span> 平时成绩明细</div>
+        <div class="grade-table-wrapper">
+          <table class="grade-table" id="table-usual"></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="icon">&#128203;</span> 期末成绩明细</div>
+        <div class="grade-table-wrapper">
+          <table class="grade-table" id="table-final"></table>
+        </div>
+      </div>
+
+      <!-- Back button -->
+      <div class="text-center mt-2">
+        <button class="btn btn-primary" onclick="backToQuery()">&#8592; 重新查询</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="index.html" style="color:var(--primary);text-decoration:none;">&#8592; 返回首页</a>
+    &nbsp;|&nbsp; 高校期末成绩查询系统 &copy; 2026
+  </div>
+
+<script>
+// ========== Global ==========
+let gradeData = null;
+
+// ========== Init: Load data from URL param ==========
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+  const dataFile = params.get('data');
+
+  if (!dataFile) {
+    showError('缺少数据参数。请通过管理员提供的链接访问本页面。');
+    return;
+  }
+
+  // Show loading
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('query-card').style.display = 'none';
+
+  // Load JSON data file from data/ folder
+  const url = 'data/' + dataFile;
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error('数据文件不存在或加载失败 (HTTP ' + res.status + ')');
+      return res.json();
+    })
+    .then(data => {
+      gradeData = data;
+      document.getElementById('loading').classList.remove('show');
+      document.getElementById('query-card').style.display = 'block';
+
+      // Update page header with course info
+      document.getElementById('page-title').textContent = (data.course || '成绩') + ' - 成绩查询';
+      document.getElementById('page-subtitle').textContent = '请输入姓名和学号查询「' + data.course + '」课程成绩';
+      document.getElementById('page-semester').textContent = data.semester || '';
+      document.title = (data.course || '成绩') + ' - 成绩查询';
+    })
+    .catch(err => {
+      document.getElementById('loading').classList.remove('show');
+      showError('加载数据失败：' + err.message + '。请确认链接是否正确，或联系管理员。');
+    });
+})();
+
+// ========== Query ==========
+function queryGrade() {
+  const name = document.getElementById('input-name').value.trim();
+  const id = document.getElementById('input-id').value.trim();
+
+  if (!name || !id) {
+    showAlert('alert-query', 'error', '请输入姓名和学号');
+    return;
+  }
+
+  if (!gradeData || !gradeData.students) {
+    showAlert('alert-query', 'error', '数据未加载，请刷新页面重试');
+    return;
+  }
+
+  // Find student by both name AND id
+  const student = gradeData.students.find(s => s.name === name && s.id === id);
+
+  if (!student) {
+    showAlert('alert-query', 'error', '未找到匹配的记录。请检查姓名和学号是否正确。');
+    return;
+  }
+
+  // Clear alert and show result
+  document.getElementById('alert-query').className = 'alert';
+  showResult(student);
+}
+
+// ========== Show Result ==========
+function showResult(student) {
+  document.getElementById('query-card').style.display = 'none';
+  document.getElementById('result-panel').classList.add('show');
+
+  // Basic info
+  document.getElementById('r-name').textContent = student.name;
+  document.getElementById('r-info').textContent = '学号：' + student.id + ' | 班级：' + student.class;
+
+  // Scores
+  document.getElementById('r-usual').textContent = student.usual.total;
+  document.getElementById('r-final').textContent = student.final.total;
+  document.getElementById('r-total').textContent = student.totalScore;
+  document.getElementById('r-usual-weight').textContent = gradeData.weightUsual;
+  document.getElementById('r-final-weight').textContent = gradeData.weightFinal;
+
+  // Total score color & badge
+  const totalEl = document.getElementById('r-total');
+  const badgeEl = document.getElementById('r-total-badge');
+  const totalCard = document.getElementById('r-total-card');
+  const score = student.totalScore;
+
+  if (score >= 90) {
+    totalEl.style.color = '#16a34a';
+    totalCard.style.background = '#f0fdf4';
+    totalCard.style.borderColor = '#bbf7d0';
+    badgeEl.innerHTML = '<span class="badge badge-success">优秀</span>';
+  } else if (score >= 80) {
+    totalEl.style.color = '#2563eb';
+    totalCard.style.background = '#eff6ff';
+    totalCard.style.borderColor = '#bfdbfe';
+    badgeEl.innerHTML = '<span class="badge badge-success">良好</span>';
+  } else if (score >= 60) {
+    totalEl.style.color = '#ea580c';
+    totalCard.style.background = '#fff7ed';
+    totalCard.style.borderColor = '#fed7aa';
+    badgeEl.innerHTML = '<span class="badge badge-warning">及格</span>';
+  } else {
+    totalEl.style.color = '#dc2626';
+    totalCard.style.background = '#fef2f2';
+    totalCard.style.borderColor = '#fecaca';
+    badgeEl.innerHTML = '<span class="badge badge-danger">不及格</span>';
+  }
+
+  // Build detail tables
+  buildDetailTable('table-usual', student.usual);
+  buildDetailTable('table-final', student.final);
+}
+
+// ========== Build Detail Table ==========
+function buildDetailTable(tableId, data) {
+  const table = document.getElementById(tableId);
+  let html = '<thead><tr>';
+
+  // Headers
+  data.subHeaders.forEach(h => {
+    // Clean up header text - remove prefix
+    let label = h.replace(/平时成绩（|期末成绩（|）/g, '').trim();
+    if (!label) label = h;
+    html += '<th>' + label + '</th>';
+  });
+  html += '<th>总分</th></tr></thead>';
+
+  // Scores
+  html += '<tbody><tr>';
+  data.subScores.forEach(s => {
+    html += '<td><strong>' + s + '</strong></td>';
+  });
+  html += '<td style="font-weight:800;font-size:1.1rem;color:var(--primary-dark);">' + data.total + '</td>';
+  html += '</tr></tbody>';
+
+  table.innerHTML = html;
+}
+
+// ========== Back to Query ==========
+function backToQuery() {
+  document.getElementById('result-panel').classList.remove('show');
+  document.getElementById('query-card').style.display = 'block';
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-id').value = '';
+}
+
+// ========== Helpers ==========
+function showError(msg) {
+  const el = document.getElementById('error-panel');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('query-card').style.display = 'none';
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = 'alert alert-' + type + ' show';
+  el.textContent = msg;
+}
+
+// Enter key support
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('query-card').style.display !== 'none') {
+    queryGrade();
+  }
+});
+</script>
+</body>
+</html>

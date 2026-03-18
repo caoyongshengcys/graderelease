@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高校期末成绩查询系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="header">
+    <h1>高校期末成绩查询系统</h1>
+    <p>安全 · 便捷 · 高效的成绩发布与查询平台</p>
+    <div class="subtitle">基于 GitHub Pages 静态托管</div>
+  </div>
+
+  <div class="container">
+    <div class="feature-grid">
+      <a href="admin.html" class="feature-card">
+        <div class="feature-icon">&#128218;</div>
+        <h3>管理员发布成绩</h3>
+        <p>上传平时成绩和期末成绩的 Excel 文件，输入课程名称，一键生成可分享的查询链接</p>
+      </a>
+      <a href="query.html" class="feature-card">
+        <div class="feature-icon">&#128270;</div>
+        <h3>学生查询成绩</h3>
+        <p>输入姓名和学号即可安全查询个人成绩，包含平时成绩、期末成绩及详细分项</p>
+      </a>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-title"><span class="icon">&#128221;</span> 使用说明</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <strong>管理员</strong>打开「管理员发布成绩」页面，上传从教务系统导出的<strong>平时成绩</strong>和<strong>期末成绩</strong> Excel (.xlsx) 文件。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            输入<strong>课程名称</strong>（如"高等数学"），设置平时/期末成绩的<strong>占比权重</strong>，点击「生成并发布」。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            系统会生成一个 JSON 数据文件。管理员将文件上传到 GitHub 仓库的 <code>data/</code> 目录下，并通过 GitHub Pages 部署。
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            系统自动生成<strong>查询链接</strong>。将链接分享给学生，学生输入<strong>姓名 + 学号</strong>即可查询自己的成绩。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span class="icon">&#128274;</span> 安全说明</div>
+      <p style="font-size:0.9rem; color: var(--text-secondary); line-height: 1.8;">
+        本系统采用纯前端静态方案，所有数据以 JSON 格式存储在 GitHub 仓库中。
+        学生查询时需要同时输入<strong>正确的姓名和学号</strong>才能查看成绩，其他同学的成绩信息不会被泄露。
+        数据在浏览器端进行匹配，不会发送到任何第三方服务器。
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    高校期末成绩查询系统 &copy; 2026 | Powered by GitHub Pages
+  </div>
+</body>
+</html>
